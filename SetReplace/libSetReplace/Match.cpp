@@ -193,6 +193,25 @@ namespace SetReplace {
             return result;
         }
         
+        void deleteMatch(const MatchPtr matchPtr) {
+            allMatches_.erase(matchPtr);
+            
+            const auto& expressions = matchPtr->inputExpressions;
+            for (const auto expression : expressions) {
+                expressionToMatches_[expression].erase(matchPtr);
+                if (expressionToMatches_[expression].empty()) expressionToMatches_.erase(expression);
+            }
+            
+            auto& bucket = matchQueue_[matchPtr];
+            const auto bucketIndex = bucket.first.at(matchPtr);
+            // O(1) order-non-preserving deletion from a vector
+            std::swap(bucket.second[bucketIndex], bucket.second[bucket.second.size() - 1]);
+            bucket.first[bucket.second[bucketIndex]] = bucketIndex;
+            bucket.first.erase(bucket.second[bucket.second.size() - 1]);
+            bucket.second.pop_back();
+            if (bucket.first.empty()) matchQueue_.erase(matchPtr);
+        }
+        
     private:
         void addMatchesForRule(const std::vector<ExpressionID>& expressionIDs, const RuleID& ruleID, const std::function<bool()> shouldAbort) {
             for (int i = 0; i < rules_[ruleID].inputs.size(); ++i) {
@@ -282,25 +301,6 @@ namespace SetReplace {
                     expressionToMatches_[expression].insert(matchPtr);
                 }
             }
-        }
-        
-        void deleteMatch(const MatchPtr matchPtr) {
-            allMatches_.erase(matchPtr);
-            
-            const auto& expressions = matchPtr->inputExpressions;
-            for (const auto expression : expressions) {
-                expressionToMatches_[expression].erase(matchPtr);
-                if (expressionToMatches_[expression].empty()) expressionToMatches_.erase(expression);
-            }
-            
-            auto& bucket = matchQueue_[matchPtr];
-            const auto bucketIndex = bucket.first.at(matchPtr);
-            // O(1) order-non-preserving deletion from a vector
-            std::swap(bucket.second[bucketIndex], bucket.second[bucket.second.size() - 1]);
-            bucket.first[bucket.second[bucketIndex]] = bucketIndex;
-            bucket.first.erase(bucket.second[bucket.second.size() - 1]);
-            bucket.second.pop_back();
-            if (bucket.first.empty()) matchQueue_.erase(matchPtr);
         }
         
         static bool isMatchComplete(const Match& match) {
@@ -440,5 +440,9 @@ namespace SetReplace {
 
     const std::vector<MatchPtr> Matcher::allMatches() const {
         return implementation_->allMatches();
+    }
+
+    void Matcher::deleteMatch(const MatchPtr matchPtr) {
+        implementation_->deleteMatch(matchPtr);
     }
 }

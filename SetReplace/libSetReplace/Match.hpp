@@ -66,6 +66,10 @@ namespace SetReplace {
          */
         void removeMatchesInvolvingExpressions(const std::vector<ExpressionID>& expressionIDs);
         
+        /** @brief Removes a single match from the index.
+         */
+        void deleteMatch(const MatchPtr matchPtr);
+        
         /** @brief Yields true if there are no matches left.
          */
         bool empty() const;

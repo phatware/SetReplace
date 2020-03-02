@@ -99,9 +99,8 @@ namespace SetReplace {
             // Name newly created atoms as well, now all atoms in the output are explicitly named.
             const auto namedRuleOutputs = nameAnonymousAtoms(explicitRuleOutputs);
             
-            matcher_.removeMatchesInvolvingExpressions(match->inputExpressions);
-            atomsIndex_.removeExpressions(match->inputExpressions);
-            
+            matcher_.deleteMatch(match);
+                        
             int outputGeneration = 0;
             for (const auto& inputExpression : match->inputExpressions) {
                 outputGeneration = std::max(outputGeneration, expressions_[inputExpression].generation + 1);
