@@ -298,17 +298,17 @@ namespace SetReplace {
             for (const auto& expression : expressions) {
                 ids.push_back(nextExpressionID_);
                 expressions_.insert(std::make_pair(nextExpressionID_++,
-                                                   SetExpression{expression,creatorEvent, finalStateEvent, generation}));
+                                                   SetExpression{expression, creatorEvent, {}, generation}));
             }
             return ids;
         }
         
         void assignDestroyerEvent(const std::vector<ExpressionID>& expressions, const EventID destroyerEvent) {
             for (const auto id : expressions) {
-                if (expressions_.at(id).destroyerEvent == finalStateEvent) {
+                if (expressions_.at(id).destroyerEvents.empty()) {
                     ++destroyedExpressionsCount_;
                 }
-                expressions_.at(id).destroyerEvent = destroyerEvent;
+                expressions_.at(id).destroyerEvents.push_back(destroyerEvent);
             }
             updateAtomDegrees(atomDegrees_, expressions, -1);
         }

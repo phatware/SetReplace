@@ -356,7 +356,7 @@ propertyEvaluate[True, includeBoundaryEventsPattern][
 	Max @ data[$generations],
 	1 + Max @ data[$generations][[
 		Position[
-			data[$destroyerEvents], Except[Infinity], {1}, Heads -> False][[All, 1]]]]]
+			data[$destroyerEvents], Except[{}], {1}, Heads -> False][[All, 1]]]]]
 
 
 (* ::Subsection:: *)
@@ -478,7 +478,7 @@ propertyEvaluate[True, includeBoundaryEventsPattern][
 		positiveEvent = toPositiveStep[propertyEvaluate[True, None][obj, caller, "AllEventsCount"], s, caller, "Event"]},
 	Intersection[
 		Position[data[$creatorEvents], _ ? (# <= positiveEvent &)][[All, 1]],
-		Position[data[$destroyerEvents], _ ? (# > positiveEvent &)][[All, 1]]]
+		Position[Min /@ data[$destroyerEvents], _ ? (# > positiveEvent &)][[All, 1]]]
 ]
 
 
@@ -852,7 +852,10 @@ propertyEvaluate[True, boundary : includeBoundaryEventsPattern][
 		"AllEventsList"] := With[{
 	ruleIndices = propertyEvaluate[True, boundary][evolution, caller, "AllEventsRuleIndices"],
 	createdExpressions = PositionIndex[evolution["EdgeCreatorEventIndices"]],
-	destroyedExpressions = PositionIndex[evolution["EdgeDestroyerEventIndices"]]},
+	destroyedExpressions = Merge[
+			Association /@
+				Catenate[Thread /@ Thread[evolution["EdgeDestroyerEventIndices"] -> Range[evolution["AllEventsEdgesCount"]]]],
+			# &]},
 		If[MissingQ[ruleIndices],
 			ruleIndices,
 			MapThread[

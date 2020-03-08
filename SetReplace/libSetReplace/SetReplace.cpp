@@ -98,16 +98,22 @@ namespace SetReplace {
     }
     
     MTensor putSet(const std::vector<SetExpression>& expressions, WolframLibraryData libData) {
-        // creator + destroyer events + generation + atoms count
+        // creator event + destroyer events pointer + generation + atoms list pointer
         // add fake event at the end to specify the length of the last expression
         int tensorLength = 1 + 4 * (static_cast<int>(expressions.size()) + 1);
         
-        // The rest of the result are the atoms, positions to which are referenced in each expression spec.
+        // Atoms are next, positions to which are referenced in each expression spec.
         // This is where the first atom will be located.
         int atomsPointer = tensorLength + 1;
-        
         for (int i = 0; i < expressions.size(); ++i) {
             tensorLength += expressions[i].atoms.size();
+        }
+        
+        // Finally, destroyer events.
+        // This is where the first list of destroyer events is located.
+        int destroyerPointer = tensorLength + 1;
+        for (int i = 0; i < expressions.size(); ++i) {
+            tensorLength += expressions[i].destroyerEvents.size();
         }
         
         mint dimensions[1] = {tensorLength};
@@ -127,19 +133,24 @@ namespace SetReplace {
         for (int expressionIndex = 0; expressionIndex < expressions.size(); ++expressionIndex) {
             appendToTensor({
                 expressions[expressionIndex].creatorEvent,
-                expressions[expressionIndex].destroyerEvent,
+                destroyerPointer,
                 expressions[expressionIndex].generation,
                 atomsPointer});
             atomsPointer += expressions[expressionIndex].atoms.size();
+            destroyerPointer += expressions[expressionIndex].destroyerEvents.size();
         }
         
         // Put fake event at the end so that the length of final expression can be determined on WL side.
         constexpr EventID fakeEvent = -3;
         constexpr Generation fakeGeneration = -1;
-        appendToTensor({fakeEvent, fakeEvent, fakeGeneration, atomsPointer});
+        appendToTensor({fakeEvent, destroyerPointer, fakeGeneration, atomsPointer});
         
         for (int expressionIndex = 0; expressionIndex < expressions.size(); ++expressionIndex) {
             appendToTensor(expressions[expressionIndex].atoms);
+        }
+        
+        for (int expressionIndex = 0; expressionIndex < expressions.size(); ++ expressionIndex) {
+            appendToTensor(expressions[expressionIndex].destroyerEvents);
         }
         
         return output;
