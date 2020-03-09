@@ -749,7 +749,7 @@ propertyEvaluate[True, includeBoundaryEvents : includeBoundaryEventsPattern][
 		KeyDrop[
 			Merge[Max] @ Join[
 				Association /@ Thread[data[$creatorEvents] -> data[$generations]],
-				Association /@ Thread[data[$destroyerEvents] -> data[$generations] + 1]],
+				Association /@ Catenate[Thread /@ Thread[data[$destroyerEvents] -> data[$generations] + 1]]],
 			{0, Infinity}]
 
 
@@ -777,8 +777,9 @@ propertyEvaluate[True, includeBoundaryEvents : includeBoundaryEventsPattern][
 			(Complement[{o}, FilterRules[{o}, $propertyOptions[property]]] == {}) := With[{
 		$eventsToDelete = Alternatives @@ eventsToDelete[includeBoundaryEvents]},
 	Graph[
-		DeleteCases[Union[data[$creatorEvents], data[$destroyerEvents]], $eventsToDelete],
-		Select[FreeQ[#, $eventsToDelete] &] @ Thread[data[$creatorEvents] \[DirectedEdge] data[$destroyerEvents]],
+		DeleteCases[Union[data[$creatorEvents], Catenate[data[$destroyerEvents]]], $eventsToDelete],
+		Select[FreeQ[#, $eventsToDelete] &] @
+			Catenate[Thread /@ Thread[data[$creatorEvents] \[DirectedEdge] data[$destroyerEvents]]],
 		o,
 		VertexStyle -> Select[Head[#] =!= Rule || !MatchQ[#[[1]], $eventsToDelete] &] @ {
 			style[$lightTheme][$causalGraphVertexStyle],
