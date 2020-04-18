@@ -8,39 +8,39 @@
 
 namespace SetReplace {
     class Set::Implementation {
-    private:
+     private:
         // Rules fundamentally cannot be changed during evaluation, don't try to remove const.
         // If rules do need to be changed, create another instance of Set and copy the expressions over.
         const std::vector<Rule> rules_;
-        
+
         // Determines the limiting conditions for the evaluation.
         StepSpecification stepSpec_;
         TerminationReason terminationReason_ = TerminationReason::NotTerminated;
-        
+
         std::unordered_map<ExpressionID, SetExpression> expressions_;
         std::vector<RuleID> eventRuleIDs_ = {-1};
-        
+
         Atom nextAtom_ = 1;
         ExpressionID nextExpressionID_ = 0;
-        
+
         int64_t destroyedExpressionsCount_ = 0;
-        
+
         // In another words, expressions counts by atom.
         // Note, we cannot use atomsIndex_, because it does not keep last generation expressions.
         std::unordered_map<Atom, int64_t> atomDegrees_;
-        
+
         // Largest generation produced so far.
         // Note, this is not the same as max of generations of all expressions,
         // because there might exist an event that deletes expressions, but does not create any new ones.
         Generation largestGeneration_ = 0;
-        
+
         AtomsIndex atomsIndex_;
-        
+
         Matcher matcher_;
-        
+
         std::vector<ExpressionID> unindexedExpressions_;
-        
-    public:
+
+     public:
         Implementation(const std::vector<Rule>& rules,
                        const std::vector<AtomsVector>& initialExpressions,
                        const Matcher::OrderingSpec orderingSpec,
@@ -48,7 +48,7 @@ namespace SetReplace {
             Implementation(rules, initialExpressions, orderingSpec, randomSeed, [this](const int64_t expressionID) {
                 return expressions_.at(expressionID).atoms;
             }) {}
-        
+
         int64_t replaceOnce(const std::function<bool()> shouldAbort) {
             terminationReason_ = TerminationReason::NotTerminated;
 
@@ -56,8 +56,8 @@ namespace SetReplace {
                 terminationReason_ = TerminationReason::MaxEvents;
                 return 0;
             }
-            
-            indexNewExpressions([this, &shouldAbort](){
+
+            indexNewExpressions([this, &shouldAbort]() {
                 const bool isAborted = shouldAbort();
                 if (isAborted) terminationReason_ = TerminationReason::Aborted;
                 return isAborted;
@@ -71,20 +71,20 @@ namespace SetReplace {
                 return 0;
             }
             const MatchPtr match = matcher_.nextMatch();
-            
+
             const auto& ruleInputs = rules_[match->rule].inputs;
             std::vector<AtomsVector> inputExpressions;
             for (const auto& expressionID : match->inputExpressions) {
                 inputExpressions.push_back(expressions_.at(expressionID).atoms);
             }
-            
+
             auto explicitRuleInputs = ruleInputs;
             Matcher::substituteMissingAtomsIfPossible(ruleInputs, inputExpressions, explicitRuleInputs);
-            
+
             // Identify output atoms that appear in the input, that still leaves newly created atoms as patterns.
             auto explicitRuleOutputs = rules_[match->rule].outputs;
             Matcher::substituteMissingAtomsIfPossible(ruleInputs, inputExpressions, explicitRuleOutputs);
-            
+
             for (const auto function : {&Implementation::willExceedAtomLimits,
                                         &Implementation::willExceedExpressionsLimit}) {
                 const auto willExceedAtomLimitsStatus = (this->*function)(explicitRuleInputs, explicitRuleOutputs);
@@ -93,29 +93,29 @@ namespace SetReplace {
                     return 0;
                 }
             }
-            
+
             // At this point, we are committed to modifying the set.
-            
+
             // Name newly created atoms as well, now all atoms in the output are explicitly named.
             const auto namedRuleOutputs = nameAnonymousAtoms(explicitRuleOutputs);
-            
+
             matcher_.removeMatchesInvolvingExpressions(match->inputExpressions);
             atomsIndex_.removeExpressions(match->inputExpressions);
-            
+
             Generation outputGeneration = 0;
             for (const auto& inputExpression : match->inputExpressions) {
                 outputGeneration = std::max(outputGeneration, expressions_[inputExpression].generation + 1);
             }
             largestGeneration_ = std::max(largestGeneration_, outputGeneration);
-            
+
             const EventID eventID = static_cast<EventID>(eventRuleIDs_.size());
             addExpressions(namedRuleOutputs, eventID, outputGeneration);
             assignDestroyerEvent(match->inputExpressions, eventID);
             eventRuleIDs_.push_back(match->rule);
-            
+
             return 1;
         }
-        
+
         int64_t replace(const StepSpecification stepSpec, const std::function<bool()> shouldAbort) {
             updateStepSpec(stepSpec);
             int64_t count = 0;
@@ -127,7 +127,7 @@ namespace SetReplace {
                 }
             }
         }
-        
+
         std::vector<SetExpression> expressions() const {
             std::vector<std::pair<ExpressionID, SetExpression>> idsAndExpressions;
             idsAndExpressions.reserve(expressions_.size());
@@ -144,29 +144,29 @@ namespace SetReplace {
             }
             return result;
         }
-        
+
         Generation maxCompleteGeneration(const std::function<bool()> shouldAbort) {
             indexNewExpressions(shouldAbort);
             return std::min(smallestGeneration(matcher_.allMatches()), largestGeneration_);
         }
-        
+
         TerminationReason terminationReason() const {
             return terminationReason_;
         }
-        
+
         const std::vector<RuleID>& eventRuleIDs() const {
             return eventRuleIDs_;
         }
 
-    private:
+     private:
         Implementation(const std::vector<Rule>& rules,
                        const std::vector<AtomsVector>& initialExpressions,
                        const Matcher::OrderingSpec orderingSpec,
                        const unsigned int randomSeed,
                        const std::function<AtomsVector(ExpressionID)>& getAtomsVector) :
-        rules_(rules),
-        atomsIndex_(getAtomsVector),
-        matcher_(rules_, atomsIndex_, getAtomsVector, orderingSpec, randomSeed) {
+            rules_(rules),
+            atomsIndex_(getAtomsVector),
+            matcher_(rules_, atomsIndex_, getAtomsVector, orderingSpec, randomSeed) {
             for (const auto& expression : initialExpressions) {
                 for (const auto& atom : expression) {
                     if (atom <= 0) throw Error::NonPositiveAtoms;
@@ -183,7 +183,7 @@ namespace SetReplace {
             }
             return ++nextAtom_;
         }
-        
+
         void updateStepSpec(const StepSpecification newStepSpec) {
             const auto previousMaxGeneration = stepSpec_.maxGenerationsLocal;
             stepSpec_ = newStepSpec;
@@ -195,47 +195,47 @@ namespace SetReplace {
                 }
             }
         }
-        
+
         void indexNewExpressions(const std::function<bool()> shouldAbort) {
             // Atoms index must be updated first, because the matcher uses it to discover expressions.
             atomsIndex_.addExpressions(unindexedExpressions_);
             matcher_.addMatchesInvolvingExpressions(unindexedExpressions_, shouldAbort);
             unindexedExpressions_.clear();
         }
-        
+
         TerminationReason willExceedAtomLimits(const std::vector<AtomsVector> explicitRuleInputs,
                                                const std::vector<AtomsVector> explicitRuleOutputs) const {
             const int64_t currentAtomsCount = static_cast<int64_t>(atomDegrees_.size());
-            
+
             std::unordered_map<Atom, int64_t> atomDegreeDeltas;
             updateAtomDegrees(atomDegreeDeltas, explicitRuleInputs, -1, false);
             updateAtomDegrees(atomDegreeDeltas, explicitRuleOutputs, +1, false);
-            
+
             int64_t newAtomsCount = currentAtomsCount;
             for (const auto& atomAndDegreeDelta : atomDegreeDeltas) {
                 const Atom atom = atomAndDegreeDelta.first;
                 const int64_t degreeDelta = atomAndDegreeDelta.second;
-                const int64_t currentDegree = static_cast<int64_t>(atomDegrees_.count(atom)) ? atomDegrees_.at(atom) : 0;
+                const int64_t
+                    currentDegree = static_cast<int64_t>(atomDegrees_.count(atom)) ? atomDegrees_.at(atom) : 0;
                 if (currentDegree == 0 && degreeDelta > 0) {
                     ++newAtomsCount;
-                }
-                else if (currentDegree > 0 && currentDegree + degreeDelta == 0) {
+                } else if (currentDegree > 0 && currentDegree + degreeDelta == 0) {
                     --newAtomsCount;
                 }
-                
+
                 // Check atom degree.
                 if (currentDegree + degreeDelta > stepSpec_.maxFinalAtomDegree) {
                     return TerminationReason::MaxFinalAtomDegree;
                 }
             }
-            
+
             if (newAtomsCount > stepSpec_.maxFinalAtoms) {
                 return TerminationReason::MaxFinalAtoms;
             } else {
                 return TerminationReason::NotTerminated;
             }
         }
-        
+
         static void updateAtomDegrees(std::unordered_map<Atom, int64_t>& atomDegrees,
                                       const std::vector<AtomsVector>& deltaExpressions,
                                       const int64_t deltaCount,
@@ -253,20 +253,20 @@ namespace SetReplace {
                 }
             }
         }
-        
+
         TerminationReason willExceedExpressionsLimit(const std::vector<AtomsVector> explicitRuleInputs,
                                                      const std::vector<AtomsVector> explicitRuleOutputs) const {
             const int64_t currentExpressionsCount = nextExpressionID_ - destroyedExpressionsCount_;
             const int64_t newExpressionsCount = currentExpressionsCount
-                                                - static_cast<int64_t>(explicitRuleInputs.size())
-                                                + static_cast<int64_t>(explicitRuleOutputs.size());
+                - static_cast<int64_t>(explicitRuleInputs.size())
+                + static_cast<int64_t>(explicitRuleOutputs.size());
             if (newExpressionsCount > stepSpec_.maxFinalExpressions) {
                 return TerminationReason::MaxFinalExpressions;
             } else {
                 return TerminationReason::NotTerminated;
             }
         }
-        
+
         std::vector<AtomsVector> nameAnonymousAtoms(const std::vector<AtomsVector>& atomVectors) {
             std::unordered_map<Atom, Atom> names;
             std::vector<AtomsVector> result = atomVectors;
@@ -280,26 +280,26 @@ namespace SetReplace {
                     }
                 }
             }
-            
+
             return result;
         }
-        
+
         std::vector<ExpressionID> addExpressions(const std::vector<AtomsVector>& expressions,
                                                  const EventID creatorEvent,
                                                  const Generation generation) {
             const auto ids = assignExpressionIDs(expressions, creatorEvent, generation);
-            
+
             // If generation is at least maxGeneration_, we will never use these expressions as inputs, so no need adding them to the index.
             if (generation < stepSpec_.maxGenerationsLocal) {
                 for (const auto id : ids) {
                     unindexedExpressions_.push_back(id);
                 }
             }
-            
+
             updateAtomDegrees(atomDegrees_, expressions, +1);
             return ids;
         }
-        
+
         std::vector<ExpressionID> assignExpressionIDs(const std::vector<AtomsVector>& expressions,
                                                       const EventID creatorEvent,
                                                       const Generation generation) {
@@ -307,11 +307,12 @@ namespace SetReplace {
             for (const auto& expression : expressions) {
                 ids.push_back(nextExpressionID_);
                 expressions_.insert(std::make_pair(nextExpressionID_++,
-                                                   SetExpression{expression,creatorEvent, finalStateEvent, generation}));
+                                                   SetExpression{expression, creatorEvent, finalStateEvent,
+                                                                 generation}));
             }
             return ids;
         }
-        
+
         void assignDestroyerEvent(const std::vector<ExpressionID>& expressions, const EventID destroyerEvent) {
             for (const auto id : expressions) {
                 if (expressions_.at(id).destroyerEvent == finalStateEvent) {
@@ -321,7 +322,7 @@ namespace SetReplace {
             }
             updateAtomDegrees(atomDegrees_, expressions, -1);
         }
-        
+
         void updateAtomDegrees(std::unordered_map<Atom, int64_t>& atomDegrees,
                                const std::vector<ExpressionID>& deltaExpressionIDs,
                                const int64_t deltaCount) const {
@@ -331,7 +332,7 @@ namespace SetReplace {
             }
             updateAtomDegrees(atomDegrees, expressions, deltaCount);
         }
-        
+
         Generation smallestGeneration(const std::vector<MatchPtr>& matches) const {
             Generation smallestSoFar = std::numeric_limits<Generation>::max();
             for (const auto& match : matches) {
@@ -344,26 +345,26 @@ namespace SetReplace {
             return smallestSoFar;
         }
     };
-    
+
     Set::Set(const std::vector<Rule>& rules,
              const std::vector<AtomsVector>& initialExpressions,
              const Matcher::OrderingSpec orderingSpec,
              const unsigned int randomSeed) {
         implementation_ = std::make_shared<Implementation>(rules, initialExpressions, orderingSpec, randomSeed);
     }
-    
+
     int64_t Set::replaceOnce(const std::function<bool()> shouldAbort) {
         return implementation_->replaceOnce(shouldAbort);
     }
-    
+
     int64_t Set::replace(const StepSpecification stepSpec, const std::function<bool()> shouldAbort) {
         return implementation_->replace(stepSpec, shouldAbort);
     }
-    
+
     std::vector<SetExpression> Set::expressions() const {
         return implementation_->expressions();
     }
-    
+
     Generation Set::maxCompleteGeneration(const std::function<bool()> shouldAbort) {
         return implementation_->maxCompleteGeneration(shouldAbort);
     }

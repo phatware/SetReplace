@@ -28,7 +28,7 @@ namespace SetReplace {
         const auto getRulesData = [&tensorData, &tensorLength, &readIndex]() -> mint {
             return getData(tensorData, tensorLength, readIndex++);
         };
-        
+
         const mint rulesCount = getRulesData();
         std::vector<Rule> rules;
         for (mint ruleIndex = 0; ruleIndex < rulesCount; ++ruleIndex) {
@@ -36,7 +36,7 @@ namespace SetReplace {
                 throw LIBRARY_FUNCTION_ERROR;
             } else {
                 std::vector<std::vector<AtomsVector>> ruleInputsAndOutputs(2);
-                
+
                 for (auto& set : ruleInputsAndOutputs) {
                     const mint setLength = getRulesData();
                     for (mint expressionIndex = 0; expressionIndex < setLength; ++expressionIndex) {
@@ -52,7 +52,7 @@ namespace SetReplace {
         }
         return rules;
     }
-    
+
     std::vector<AtomsVector> getSet(WolframLibraryData libData, MTensor& setTensor) {
         mint tensorLength = libData->MTensor_getFlattenedLength(setTensor);
         mint* tensorData = libData->MTensor_getIntegerData(setTensor);
@@ -60,7 +60,7 @@ namespace SetReplace {
         const auto getSetData = [&tensorData, &tensorLength, &readIndex]() -> mint {
             return getData(tensorData, tensorLength, readIndex++);
         };
-        
+
         std::vector<AtomsVector> set(getSetData());
         for (auto& atomsVector : set) {
             const mint expressionLength = getSetData();
@@ -85,7 +85,7 @@ namespace SetReplace {
         }
         return result;
     }
-    
+
     Set::StepSpecification getStepSpec(WolframLibraryData libData, MTensor& stepsTensor) {
         mint tensorLength = libData->MTensor_getFlattenedLength(stepsTensor);
         constexpr mint specLength = 5;
@@ -104,28 +104,28 @@ namespace SetReplace {
             result.maxFinalAtoms = stepSpecElements[2];
             result.maxFinalAtomDegree = stepSpecElements[3];
             result.maxFinalExpressions = stepSpecElements[4];
-            
+
             return result;
         }
     }
-    
+
     MTensor putSet(const std::vector<SetExpression>& expressions, WolframLibraryData libData) {
         // creator + destroyer events + generation + atoms count
         // add fake event at the end to specify the length of the last expression
         size_t tensorLength = 1 + 4 * (expressions.size() + 1);
-        
+
         // The rest of the result are the atoms, positions to which are referenced in each expression spec.
         // This is where the first atom will be located.
         size_t atomsPointer = tensorLength + 1;
-        
+
         for (size_t i = 0; i < expressions.size(); ++i) {
             tensorLength += expressions[i].atoms.size();
         }
-        
+
         mint dimensions[1] = {static_cast<mint>(tensorLength)};
         MTensor output;
         libData->MTensor_new(MType_Integer, 1, dimensions, &output);
-        
+
         mint writeIndex = 0;
         mint position[1];
         const auto appendToTensor = [libData, &writeIndex, &position, &output](const std::vector<mint> numbers) {
@@ -134,26 +134,26 @@ namespace SetReplace {
                 libData->MTensor_setInteger(output, position, number);
             }
         };
-        
+
         appendToTensor({static_cast<mint>(expressions.size())});
         for (size_t expressionIndex = 0; expressionIndex < expressions.size(); ++expressionIndex) {
             appendToTensor({
-                static_cast<mint>(expressions[expressionIndex].creatorEvent),
-                static_cast<mint>(expressions[expressionIndex].destroyerEvent),
-                static_cast<mint>(expressions[expressionIndex].generation),
-                static_cast<mint>(atomsPointer)});
+                               static_cast<mint>(expressions[expressionIndex].creatorEvent),
+                               static_cast<mint>(expressions[expressionIndex].destroyerEvent),
+                               static_cast<mint>(expressions[expressionIndex].generation),
+                               static_cast<mint>(atomsPointer)});
             atomsPointer += expressions[expressionIndex].atoms.size();
         }
-        
+
         // Put fake event at the end so that the length of final expression can be determined on WL side.
         constexpr EventID fakeEvent = -3;
         constexpr Generation fakeGeneration = -1;
         appendToTensor({
-            static_cast<mint>(fakeEvent),
-            static_cast<mint>(fakeEvent),
-            static_cast<mint>(fakeGeneration),
-            static_cast<mint>(atomsPointer)});
-        
+                           static_cast<mint>(fakeEvent),
+                           static_cast<mint>(fakeEvent),
+                           static_cast<mint>(fakeGeneration),
+                           static_cast<mint>(atomsPointer)});
+
         for (size_t expressionIndex = 0; expressionIndex < expressions.size(); ++expressionIndex) {
             std::vector<mint> atoms(expressions[expressionIndex].atoms.size());
             for (int i = 0; i < expressions[expressionIndex].atoms.size(); ++i) {
@@ -161,15 +161,15 @@ namespace SetReplace {
             }
             appendToTensor(atoms);
         }
-        
+
         return output;
     }
 
-    int setCreate(WolframLibraryData libData, mint argc, MArgument *argv, MArgument result) {
+    int setCreate(WolframLibraryData libData, mint argc, MArgument* argv, MArgument result) {
         if (argc != 4) {
             return LIBRARY_FUNCTION_ERROR;
         }
-        
+
         std::vector<Rule> rules;
         std::vector<AtomsVector> initialExpressions;
         Matcher::OrderingSpec orderingSpec;
@@ -182,7 +182,7 @@ namespace SetReplace {
         } catch (...) {
             return LIBRARY_FUNCTION_ERROR;
         }
-        
+
         SetID thisSetID;
         do {
             std::mt19937_64 randomGenerator(std::chrono::system_clock::now().time_since_epoch().count());
@@ -194,12 +194,12 @@ namespace SetReplace {
         } catch (...) {
             return LIBRARY_FUNCTION_ERROR;
         }
-        
+
         MArgument_setInteger(result, thisSetID);
         return LIBRARY_NO_ERROR;
     }
 
-    int setDelete(WolframLibraryData libData, mint argc, MArgument *argv, MArgument result) {
+    int setDelete(WolframLibraryData libData, mint argc, MArgument* argv, MArgument result) {
         if (argc != 1) {
             return LIBRARY_FUNCTION_ERROR;
         }
@@ -211,7 +211,7 @@ namespace SetReplace {
         }
         return LIBRARY_NO_ERROR;
     }
-    
+
     const std::function<bool()> shouldAbort(WolframLibraryData& libData) {
         return [&libData]() {
             return static_cast<bool>(libData->AbortQ());
@@ -226,11 +226,11 @@ namespace SetReplace {
         }
     }
 
-    int setReplace(WolframLibraryData libData, mint argc, MArgument *argv, MArgument result) {
+    int setReplace(WolframLibraryData libData, mint argc, MArgument* argv, MArgument result) {
         if (argc != 2) {
             return LIBRARY_FUNCTION_ERROR;
         }
-        
+
         const SetID setID = MArgument_getInteger(argv[0]);
         Set::StepSpecification stepSpec;
         try {
@@ -238,103 +238,104 @@ namespace SetReplace {
         } catch (...) {
             return LIBRARY_FUNCTION_ERROR;
         }
-        
+
         try {
             setFromID(setID).replace(stepSpec, shouldAbort(libData));
         } catch (...) {
             return LIBRARY_FUNCTION_ERROR;
         }
-        
+
         return LIBRARY_NO_ERROR;
     }
 
-    int setExpressions(WolframLibraryData libData, mint argc, MArgument *argv, MArgument result) {
+    int setExpressions(WolframLibraryData libData, mint argc, MArgument* argv, MArgument result) {
         if (argc != 1) {
             return LIBRARY_FUNCTION_ERROR;
         }
-        
+
         const SetID setID = MArgument_getInteger(argv[0]);;
-        
+
         std::vector<SetExpression> expressions;
         try {
             expressions = setFromID(setID).expressions();
         } catch (...) {
             return LIBRARY_FUNCTION_ERROR;
         }
-        
+
         MArgument_setMTensor(result, putSet(expressions, libData));
-        
+
         return LIBRARY_NO_ERROR;
     }
 
-    int maxCompleteGeneration(WolframLibraryData libData, mint argc, MArgument *argv, MArgument result) {
+    int maxCompleteGeneration(WolframLibraryData libData, mint argc, MArgument* argv, MArgument result) {
         if (argc != 1) {
             return LIBRARY_FUNCTION_ERROR;
         }
-        
+
         const SetID setID = MArgument_getInteger(argv[0]);;
-        
+
         Generation maxCompleteGeneration;
         try {
             maxCompleteGeneration = setFromID(setID).maxCompleteGeneration(shouldAbort(libData));
         } catch (...) {
             return LIBRARY_FUNCTION_ERROR;
         }
-        
+
         MArgument_setInteger(result, maxCompleteGeneration);
-        
+
         return LIBRARY_NO_ERROR;
     }
 
-    int terminationReason(WolframLibraryData libData, mint argc, MArgument *argv, MArgument result) {
+    int terminationReason(WolframLibraryData libData, mint argc, MArgument* argv, MArgument result) {
         if (argc != 1) {
             return LIBRARY_FUNCTION_ERROR;
         }
-        
+
         const SetID setID = MArgument_getInteger(argv[0]);
-        
+
         Set::TerminationReason terminationReason;
         try {
             terminationReason = setFromID(setID).terminationReason();
         } catch (...) {
             return LIBRARY_FUNCTION_ERROR;
         }
-        
-        MArgument_setInteger(result, (int)terminationReason);
+
+        MArgument_setInteger(result, (int) terminationReason);
 
         return LIBRARY_NO_ERROR;
     }
 
-    int eventRuleIDs(WolframLibraryData libData, mint argc, MArgument *argv, MArgument result) {
+    int eventRuleIDs(WolframLibraryData libData, mint argc, MArgument* argv, MArgument result) {
         if (argc != 1) {
             return LIBRARY_FUNCTION_ERROR;
         }
-        
+
         const SetID setID = MArgument_getInteger(argv[0]);
-        
+
         try {
             const auto ruleIDs = setFromID(setID).eventRuleIDs();
             mint dimensions[1] = {static_cast<mint>(ruleIDs.size() - 1)};
             MTensor output;
             libData->MTensor_new(MType_Integer, 1, dimensions, &output);
-            
+
             mint writeIndex = 0;
             mint position[1];
             for (size_t event = 1; event < ruleIDs.size(); ++event) {
                 position[0] = ++writeIndex;
                 libData->MTensor_setInteger(output, position, static_cast<mint>(ruleIDs[event]) + 1);
             }
-            
+
             MArgument_setMTensor(result, output);
         } catch (...) {
             return LIBRARY_FUNCTION_ERROR;
         }
-        
+
         return LIBRARY_NO_ERROR;
     }
 }
 
-EXTERN_C mint WolframLibrary_getVersion() {
+EXTERN_C mint
+WolframLibrary_getVersion() {
     return WolframLibraryVersion;
 }
 
@@ -346,30 +347,30 @@ EXTERN_C void WolframLibrary_uninitialize(WolframLibraryData libData) {
     return;
 }
 
-EXTERN_C int setCreate(WolframLibraryData libData, mint argc, MArgument *argv, MArgument result) {
+EXTERN_C int setCreate(WolframLibraryData libData, mint argc, MArgument* argv, MArgument result) {
     return SetReplace::setCreate(libData, argc, argv, result);
 }
 
-EXTERN_C int setDelete(WolframLibraryData libData, mint argc, MArgument *argv, MArgument result) {
+EXTERN_C int setDelete(WolframLibraryData libData, mint argc, MArgument* argv, MArgument result) {
     return SetReplace::setDelete(libData, argc, argv, result);
 }
 
-EXTERN_C int setReplace(WolframLibraryData libData, mint argc, MArgument *argv, MArgument result) {
+EXTERN_C int setReplace(WolframLibraryData libData, mint argc, MArgument* argv, MArgument result) {
     return SetReplace::setReplace(libData, argc, argv, result);
 }
 
-EXTERN_C int setExpressions(WolframLibraryData libData, mint argc, MArgument *argv, MArgument result) {
+EXTERN_C int setExpressions(WolframLibraryData libData, mint argc, MArgument* argv, MArgument result) {
     return SetReplace::setExpressions(libData, argc, argv, result);
 }
 
-EXTERN_C int maxCompleteGeneration(WolframLibraryData libData, mint argc, MArgument *argv, MArgument result) {
+EXTERN_C int maxCompleteGeneration(WolframLibraryData libData, mint argc, MArgument* argv, MArgument result) {
     return SetReplace::maxCompleteGeneration(libData, argc, argv, result);
 }
 
-EXTERN_C int terminationReason(WolframLibraryData libData, mint argc, MArgument *argv, MArgument result) {
+EXTERN_C int terminationReason(WolframLibraryData libData, mint argc, MArgument* argv, MArgument result) {
     return SetReplace::terminationReason(libData, argc, argv, result);
 }
 
-EXTERN_C int eventRuleIDs(WolframLibraryData libData, mint argc, MArgument *argv, MArgument result) {
+EXTERN_C int eventRuleIDs(WolframLibraryData libData, mint argc, MArgument* argv, MArgument result) {
     return SetReplace::eventRuleIDs(libData, argc, argv, result);
 }
