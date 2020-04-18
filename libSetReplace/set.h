@@ -29,9 +29,9 @@
 #include <memory>
 #include <vector>
 
-#include "Expression.hpp"
-#include "Match.hpp"
-#include "Rule.hpp"
+#include "expression.h"
+#include "match.h"
+#include "rule.h"
 
 namespace SetReplace {
     /** @brief Set is the set of expressions (i.e., the graph, the Universe) that is being evolved.

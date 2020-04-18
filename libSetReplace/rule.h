@@ -27,7 +27,7 @@
 
 #include <vector>
 
-#include "Expression.hpp"
+#include "expression.h"
 
 namespace SetReplace {
     /** @brief Substitution rule used in the evolution.

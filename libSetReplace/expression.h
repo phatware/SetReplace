@@ -30,7 +30,7 @@
 #include <vector>
 #include <unordered_set>
 
-#include "IDTypes.hpp"
+#include "id_types.h"
 
 namespace SetReplace {
     /** @brief List of atoms without references to events, as can be used in, i.e., rule specification.

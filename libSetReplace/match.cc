@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-#include "Match.hpp"
+#include "match.h"
 
 #include <algorithm>
 #include <map>

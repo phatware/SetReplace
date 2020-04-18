@@ -28,9 +28,9 @@
 #include <vector>
 #include <set>
 
-#include "IDTypes.hpp"
-#include "Expression.hpp"
-#include "Rule.hpp"
+#include "id_types.h"
+#include "expression.h"
+#include "rule.h"
 
 namespace SetReplace {
     /** @brief Match is a potential event that has not actualized yet.

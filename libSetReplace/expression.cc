@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-#include "Expression.hpp"
+#include "expression.h"
 
 #include <algorithm>
 #include <unordered_map>

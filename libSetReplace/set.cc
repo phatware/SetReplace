@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-#include "Set.hpp"
+#include "set.h"
 
 #include <algorithm>
 #include <set>

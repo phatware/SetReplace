@@ -24,7 +24,7 @@ buildLibSetReplace[] := With[{
     systemID = If[$internalBuildQ, AntProperty["system_id"], $SystemID]},
   If[$internalBuildQ, Off[CreateLibrary::wddirty]];
   If[!StringQ[CreateLibrary[
-      FileNames["*.cpp", {libSetReplaceSource}],
+      FileNames["*.cc", {libSetReplaceSource}],
       "libSetReplace",
       "CleanIntermediate" -> True,
       "CompileOptions" -> Switch[$OperatingSystem,

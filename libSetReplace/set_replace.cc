@@ -27,9 +27,9 @@
 #include <string>
 #include <unordered_map>
 
-#include "SetReplace.hpp"
+#include "set_replace.h"
 
-#include "Set.hpp"
+#include "set.h"
 
 mint getData(mint* data, mint length, mint index) {
     if (index >= length || index < 0) {
